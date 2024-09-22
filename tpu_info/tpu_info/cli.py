@@ -23,12 +23,39 @@ import grpc
 import rich.console
 import rich.table
 
+def print_chip_info():
+  import sys
+  if len(sys.argv) > 1:
+    precision = sys.argv[1].lower()
+  else:
+    precision = 'gb'
+
+  if len(sys.argv) > 2:
+    num_decimals = int(sys.argv[2])
+  else:
+    num_decimals = 2
+
+_print_chip_info(precision, num_decimals)
 
 def _bytes_to_gib(size: int) -> float:
   return size / (1 << 30)
 
+def _bytes_to_precision(size: int, precision) -> float:
+    match precision:
+        case 'b':
+            precision_factor = 0
+        case 'kb':
+            precision_factor = 10
+        case 'mb':
+            precision_factor = 20
+        case 'gb':
+            precision_factor = 30
 
-def print_chip_info():
+    return size / (1<<precision_factor)
+
+
+
+def _print_chip_info(precision: str, num_decimals: int):
   """Print local TPU devices and libtpu runtime metrics."""
   # TODO(wcromar): Merge all of this info into one table
   chip_type, count = device.get_local_chips()
@@ -63,7 +90,7 @@ def print_chip_info():
 
   table = rich.table.Table(title="TPU Utilization", title_justify="left")
   table.add_column("Device")
-  table.add_column("Memory usage")
+  table.add_column("Memory usage / Total memory")
   table.add_column("Duty cycle", justify="right")
 
   try:
@@ -81,11 +108,23 @@ def print_chip_info():
 
   # TODO(wcromar): take alternative ports as a flag
   print("Connected to libtpu at grpc://localhost:8431...")
+
   for chip in device_usage:
+    used_memory = _bytes_to_precision(chip.memory_usage, precision)
+    total_memory = _bytes_to_precision(chip.total_memory, precision)
+    match precision:
+      case 'b':
+          suffix = 'B'
+      case 'kb':
+          suffix = 'KiB'
+      case 'mb':
+          suffix = 'MiB'
+      case 'gb':
+          suffix = 'GiB'      
     table.add_row(
         str(chip.device_id),
-        f"{_bytes_to_gib(chip.memory_usage):.2f} GiB /"
-        f" {_bytes_to_gib(chip.total_memory):.2f} GiB",
+        f"{used_memory:.{num_decimals}f} {suffix} / "
+        f"{total_memory:.{num_decimals}f} {suffix} ",
         f"{chip.duty_cycle_pct:.2f}%"
         if chip_type.value.devices_per_chip == 1 or chip.device_id % 2 == 0
         else "",
