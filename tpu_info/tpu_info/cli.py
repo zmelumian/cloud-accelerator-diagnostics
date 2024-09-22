@@ -23,20 +23,6 @@ import grpc
 import rich.console
 import rich.table
 
-def print_chip_info():
-  import sys
-  if len(sys.argv) > 1:
-    precision = sys.argv[1].lower()
-  else:
-    precision = 'gb'
-
-  if len(sys.argv) > 2:
-    num_decimals = int(sys.argv[2])
-  else:
-    num_decimals = 2
-
-_print_chip_info(precision, num_decimals)
-
 def _bytes_to_gib(size: int) -> float:
   return size / (1 << 30)
 
@@ -131,3 +117,16 @@ def _print_chip_info(precision: str, num_decimals: int):
     )
 
   console.print(table)
+def print_chip_info():
+  import sys
+  if len(sys.argv) > 1:
+    precision = sys.argv[1].lower()
+  else:
+    precision = 'gb'
+
+  if len(sys.argv) > 2:
+    num_decimals = int(sys.argv[2])
+  else:
+    num_decimals = 2
+
+  _print_chip_info(precision, num_decimals)
